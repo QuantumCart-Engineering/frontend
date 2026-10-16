@@ -1,0 +1,19 @@
+node_modules
+dist
+.angular
+coverage
+
+.git
+.github
+.gitignore
+
+*.log
+npm-debug.log*
+.DS_Store
+
+README.md
+.vscode
+*.zip
+
+# Build inputs that are not needed for `docker build` are excluded above;
+# nginx/default.conf.template must stay inside the build context.

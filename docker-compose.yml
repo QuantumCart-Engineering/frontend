@@ -1,0 +1,28 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: quantumcart-frontend
+
+    restart: unless-stopped
+
+    environment:
+      # Nginx proxies /api/* to the API Gateway so the browser stays
+      # same-origin with the storefront (production apiBaseUrl is '').
+      API_GATEWAY_URL: http://quantumcart-api-gateway:8000
+
+    ports:
+      # Host port 8080 is free; gateway and services use 8000-8007.
+      - "8080:80"
+
+    # Health check (wget /healthz) is defined as a Docker HEALTHCHECK in the
+    # Dockerfile and is inherited by this service.
+
+    networks:
+      - quantumcart-network
+
+networks:
+  quantumcart-network:
+    external: true
