@@ -1,0 +1,154 @@
+<main class="page">
+  <div class="container">
+    <header class="page-header">
+      <span class="eyebrow">Account</span>
+      <h1 class="page-title">Your profile</h1>
+      <p class="page-subtitle">Manage your personal details and shipping addresses.</p>
+    </header>
+
+    @if (!user()) {
+      <div class="gate surface">
+        <h2>Sign in to view your profile</h2>
+        <a class="btn btn-inline" routerLink="/login" [queryParams]="{ returnUrl: '/account' }"
+          >Sign in</a
+        >
+      </div>
+    } @else {
+      <section class="card surface">
+        <h2 class="section-title">Personal details</h2>
+        <dl class="details">
+          <div>
+            <dt>Name</dt>
+            <dd>{{ fullName() }}</dd>
+          </div>
+          <div>
+            <dt>Email</dt>
+            <dd>{{ email() }}</dd>
+          </div>
+          <div>
+            <dt>Phone</dt>
+            <dd>{{ phone() }}</dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd>{{ statusLabel() }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="card surface">
+        <div class="card-head">
+          <h2 class="section-title">Shipping addresses</h2>
+          <button class="btn btn-inline" type="button" (click)="toggleForm()">
+            {{ showForm() ? 'Cancel' : 'Add address' }}
+          </button>
+        </div>
+
+        @if (loading()) {
+          <div class="addresses" aria-busy="true">
+            <app-skeleton height="110px"></app-skeleton>
+            <app-skeleton height="110px"></app-skeleton>
+          </div>
+        } @else if (error()) {
+          <app-error-state
+            title="Couldn’t load your profile"
+            subtitle="Please try again."
+            (retry)="reload()"
+          ></app-error-state>
+        } @else if (addresses().length > 0) {
+          <div class="addresses">
+            @for (a of addresses(); track a.id) {
+              <article class="address">
+                <div class="address-head">
+                  <span class="address-type">{{ a.addressType }}</span>
+                  @if (a.isDefault) {
+                    <span class="badge badge-primary">Default</span>
+                  }
+                </div>
+                <p class="address-name">{{ a.recipientName }}</p>
+                <p class="address-line">{{ a.addressLine1 }}</p>
+                @if (a.addressLine2) {
+                  <p class="address-line">{{ a.addressLine2 }}</p>
+                }
+                <p class="address-line">{{ a.city }}, {{ a.state }} {{ a.postalCode }}</p>
+                <p class="address-line">{{ a.country }}</p>
+                @if (a.phone) {
+                  <p class="address-line">{{ a.phone }}</p>
+                }
+                <div class="address-actions">
+                  @if (!a.isDefault) {
+                    <button class="link" type="button" (click)="makeDefault(a)">
+                      Set as default
+                    </button>
+                  }
+                  <button class="link danger" type="button" (click)="removeAddress(a)">
+                    Remove
+                  </button>
+                </div>
+              </article>
+            }
+          </div>
+        } @else {
+          <app-empty-state
+            title="No saved addresses"
+            subtitle="Add an address to speed up checkout."
+          ></app-empty-state>
+        }
+
+        @if (showForm()) {
+          <form class="form-grid address-form" [formGroup]="form" (ngSubmit)="addAddress()">
+            <label class="field">
+              <span>Type</span>
+              <select class="input" formControlName="addressType">
+                <option value="HOME">Home</option>
+                <option value="WORK">Work</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Recipient name</span>
+              <input class="input" formControlName="recipientName" autocomplete="name" />
+            </label>
+            <label class="field">
+              <span>Address line 1</span>
+              <input class="input" formControlName="addressLine1" autocomplete="address-line1" />
+            </label>
+            <label class="field">
+              <span>Address line 2</span>
+              <input class="input" formControlName="addressLine2" autocomplete="address-line2" />
+            </label>
+            <label class="field">
+              <span>City</span>
+              <input class="input" formControlName="city" autocomplete="address-level2" />
+            </label>
+            <label class="field">
+              <span>State</span>
+              <input class="input" formControlName="state" autocomplete="address-level1" />
+            </label>
+            <label class="field">
+              <span>Postal code</span>
+              <input class="input" formControlName="postalCode" autocomplete="postal-code" />
+            </label>
+            <label class="field">
+              <span>Country</span>
+              <input class="input" formControlName="country" autocomplete="country-name" />
+            </label>
+            <label class="field">
+              <span>Phone</span>
+              <input class="input" formControlName="phone" autocomplete="tel" />
+            </label>
+            <label class="checkbox">
+              <input type="checkbox" formControlName="isDefault" />
+              <span>Set as default address</span>
+            </label>
+            <div class="address-form-actions">
+              <button class="btn btn-inline" type="submit" [disabled]="saving()">
+                {{ saving() ? 'Saving…' : 'Save address' }}
+              </button>
+            </div>
+          </form>
+        }
+      </section>
+    }
+  </div>
+</main>

@@ -1,0 +1,123 @@
+<main class="page">
+  <div class="container">
+    <div class="catalog-banner">
+      <header class="page-header">
+        <span class="eyebrow">Shop</span>
+        <h1 class="page-title">All products</h1>
+        <p class="page-subtitle">
+          Search, filter and sort the full range of electronics available at QuantumCart.
+        </p>
+      </header>
+    </div>
+
+    <form class="filters surface" [formGroup]="filters" (ngSubmit)="applyFilters()">
+      <div class="filter-field">
+        <label class="field-label" for="search">Search</label>
+        <input
+          id="search"
+          class="input"
+          type="search"
+          formControlName="search"
+          placeholder="Search products…"
+        />
+      </div>
+      <div class="filter-field">
+        <label class="field-label" for="categoryId">Category</label>
+        <select id="categoryId" class="select" formControlName="categoryId">
+          <option value="">All categories</option>
+          @for (c of categories(); track c.id) {
+            <option [value]="c.id">{{ c.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="filter-field small">
+        <label class="field-label" for="limit">Per page</label>
+        <select id="limit" class="select" formControlName="limit">
+          <option [ngValue]="12">12</option>
+          <option [ngValue]="24">24</option>
+          <option [ngValue]="48">48</option>
+        </select>
+      </div>
+      <div class="filter-actions">
+        <button class="btn ghost btn-inline" type="button" (click)="clearFilters()">Clear</button>
+        <button class="btn btn-inline" type="submit" [disabled]="loading()">Apply</button>
+      </div>
+    </form>
+
+    @if (categoriesFailed() && categories().length === 0) {
+      <p class="field-hint category-hint">
+        Categories are unavailable right now.
+        <button class="link" type="button" (click)="loadCategories()">Retry</button>
+      </p>
+    }
+
+    <div class="results-bar">
+      <p class="results-count" aria-live="polite">
+        @if (!loading()) {
+          {{ sortedProducts().length }}
+          {{ sortedProducts().length === 1 ? 'product' : 'products' }} shown
+        } @else {
+          Loading products…
+        }
+      </p>
+      <div class="sort-field">
+        <label class="field-label" for="sort">Sort by</label>
+        <select
+          id="sort"
+          class="select"
+          [value]="sort()"
+          (change)="onSortChange($any($event.target).value)"
+        >
+          @for (o of sortOptions; track o.value) {
+            <option [value]="o.value">{{ o.label }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <div class="grid" aria-busy="true">
+        @for (n of skeletons; track n) {
+          <app-skeleton height="340px"></app-skeleton>
+        }
+      </div>
+    } @else if (error()) {
+      <app-error-state
+        title="Couldn’t load products"
+        subtitle="Please check your connection and try again."
+        (retry)="load()"
+      ></app-error-state>
+    } @else if (sortedProducts().length > 0) {
+      <div class="grid fade-in">
+        @for (p of sortedProducts(); track p.id) {
+          <app-product-card [product]="p"></app-product-card>
+        }
+      </div>
+
+      @if (loadMoreError()) {
+        <div class="load-more">
+          <p class="field-hint">Couldn’t load more products.</p>
+          <button class="btn ghost btn-inline" type="button" (click)="loadMore()">Retry</button>
+        </div>
+      } @else if (hasMore()) {
+        <div class="load-more">
+          <button
+            class="btn ghost btn-inline"
+            type="button"
+            [disabled]="loadingMore()"
+            (click)="loadMore()"
+          >
+            {{ loadingMore() ? 'Loading…' : 'Load more' }}
+          </button>
+        </div>
+      }
+    } @else {
+      <app-empty-state
+        title="No products found"
+        subtitle="Try adjusting your search or clearing the filters."
+        cta="Clear filters"
+        ctaLink="/products"
+      ></app-empty-state>
+    }
+  </div>
+</main>

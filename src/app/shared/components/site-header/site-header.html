@@ -1,0 +1,120 @@
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" routerLink="/">
+      <img class="brand-logo" src="assets/images/logo.png" alt="" />
+      <img class="brand-logo-icon" src="assets/images/logo-icon.png" alt="" />
+      <span class="brand-wordmark sr-only">QuantumCart</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a class="nav-link" routerLink="/products" routerLinkActive="active">Shop</a>
+      @if (isAuth()) {
+        <a class="nav-link" routerLink="/orders" routerLinkActive="active">Orders</a>
+      }
+    </nav>
+
+    <form class="header-search" role="search" (submit)="submitSearch($event)">
+      <label class="sr-only" for="header-search-input">Search products</label>
+      <span class="search-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="11" cy="11" r="6.5" />
+          <line x1="16" y1="16" x2="21" y2="21" />
+        </svg>
+      </span>
+      <input
+        id="header-search-input"
+        class="input search-input"
+        type="search"
+        name="search"
+        placeholder="Search products…"
+        [value]="query()"
+        (input)="onSearchInput($event)"
+      />
+      <button class="search-btn" type="submit">Search</button>
+    </form>
+
+    <div class="actions">
+      <a
+        class="icon-action"
+        [routerLink]="isAuth() ? '/account' : '/login'"
+        [attr.aria-label]="isAuth() ? 'Your account' : 'Sign in'"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.7"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="8" r="3.5" />
+          <path d="M5 20a7 7 0 0 1 14 0" />
+        </svg>
+        <span class="icon-label">{{ isAuth() ? 'Account' : 'Sign in' }}</span>
+      </a>
+
+      <a
+        class="cart-pill"
+        routerLink="/cart"
+        [attr.aria-label]="'View cart, ' + count() + ' items'"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.7"
+          aria-hidden="true"
+        >
+          <path d="M6 7h13l-1.2 11.2a2 2 0 0 1-2 1.8H9.2a2 2 0 0 1-2-1.8Z" />
+          <path d="M9 7a3 3 0 0 1 6 0" />
+        </svg>
+        <span class="cart-label">Cart</span>
+        <span class="count" aria-hidden="true">{{ count() }}</span>
+      </a>
+
+      @if (isAuth()) {
+        <button class="btn ghost btn-inline header-auth" type="button" (click)="logout()">
+          Logout
+        </button>
+      } @else {
+        <a class="btn ghost btn-inline header-auth" routerLink="/register">Sign up</a>
+      }
+
+      <button
+        class="nav-toggle"
+        type="button"
+        (click)="toggleMobile()"
+        [attr.aria-expanded]="mobileOpen()"
+        aria-controls="mobile-nav"
+        aria-label="Toggle navigation menu"
+      >
+        <span aria-hidden="true">{{ mobileOpen() ? '✕' : '☰' }}</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="mobile-nav" id="mobile-nav" [class.open]="mobileOpen()">
+    <form class="mobile-search" role="search" (submit)="submitSearch($event)">
+      <label class="sr-only" for="mobile-search-input">Search products</label>
+      <input
+        id="mobile-search-input"
+        class="input"
+        type="search"
+        name="search"
+        placeholder="Search products…"
+        [value]="query()"
+        (input)="onSearchInput($event)"
+      />
+      <button class="btn" type="submit">Search</button>
+    </form>
+    <a class="mobile-nav-link" routerLink="/products" (click)="closeMobile()">Shop</a>
+    <a class="mobile-nav-link" routerLink="/cart" (click)="closeMobile()">Cart ({{ count() }})</a>
+    @if (isAuth()) {
+      <a class="mobile-nav-link" routerLink="/orders" (click)="closeMobile()">Orders</a>
+      <a class="mobile-nav-link" routerLink="/account" (click)="closeMobile()">Account</a>
+      <button class="mobile-nav-link" type="button" (click)="logout()">Logout</button>
+    } @else {
+      <a class="mobile-nav-link" routerLink="/login" (click)="closeMobile()">Sign in</a>
+      <a class="mobile-nav-link" routerLink="/register" (click)="closeMobile()">Sign up</a>
+    }
+  </div>
+</header>
