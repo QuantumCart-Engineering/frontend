@@ -2,7 +2,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { CatalogApi } from '../../../core/api/catalog-api';
-import { ProductWithCategories } from '../../../core/models/product';
+import { ProductImage, ProductWithCategories } from '../../../core/models/product';
 import { AuthStore } from '../../../core/services/auth-store';
 import { CartStore } from '../../../core/services/cart-store';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -10,6 +10,7 @@ import { formatCurrency } from '../../../core/utils/money';
 import { productPlaceholder, initials } from '../../../core/utils/placeholder';
 import { productStatusLabel, productStatusTone, toneClass } from '../../../core/utils/status';
 import { Skeleton } from '../../../shared/components/skeleton/skeleton';
+import { API_BASE_URL } from '../../../core/config/app-config';
 import { ErrorState } from '../../../shared/components/error-state/error-state';
 
 @Component({
@@ -45,8 +46,57 @@ import { ErrorState } from '../../../shared/components/error-state/error-state';
           ></app-error-state>
         } @else {
           <div class="detail-grid fade-in">
-            <div class="visual" [style.background]="placeholder()" aria-hidden="true">
-              <span class="monogram">{{ monogram() }}</span>
+            <div class="product-gallery">
+              <div
+                class="main-image-container"
+                [class.has-image]="!!currentImageUrl()"
+                (touchstart)="onImageSwipeStart($event)"
+                (touchend)="onImageSwipeEnd($event)"
+              >
+                @if (currentImageUrl()) {
+                  <img
+                    class="product-image"
+                    [src]="currentImageUrl()"
+                    [alt]="product()!.name"
+                    loading="lazy"
+                  />
+                } @else {
+                  <div class="visual-placeholder" [style.background]="placeholder()" aria-hidden="true">
+                    <span class="monogram">{{ monogram() }}</span>
+                  </div>
+                }
+                @if (images().length > 1) {
+                  <button
+                    class="nav prev"
+                    type="button"
+                    aria-label="Previous image"
+                    (click)="prevImage()"
+                  >‹</button>
+                  <button
+                    class="nav next"
+                    type="button"
+                    aria-label="Next image"
+                    (click)="nextImage()"
+                  >›</button>
+                  <span class="counter">{{ activeImageIndex() + 1 }} / {{ images().length }}</span>
+                }
+              </div>
+
+              @if (images().length > 1) {
+                <div class="thumbnail-strip">
+                  @for (img of images(); track img.id; let i = $index) {
+                    <button
+                      class="thumb"
+                      type="button"
+                      [class.active]="i === activeImageIndex()"
+                      (click)="goToImage(i)"
+                      [attr.aria-label]="'View image ' + (i + 1)"
+                    >
+                      <img [src]="apiBaseUrl + img.url" [alt]="product()!.name + ' image ' + (i + 1)" loading="lazy" />
+                    </button>
+                  }
+                </div>
+              }
             </div>
 
             <div class="info">
@@ -143,23 +193,6 @@ import { ErrorState } from '../../../shared/components/error-state/error-state';
         grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
         align-items: start;
       }
-      .visual {
-        aspect-ratio: 1;
-        border-radius: var(--qc-radius-xl);
-        border: 1px solid var(--qc-border);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        box-shadow: var(--qc-shadow);
-        position: sticky;
-        top: 6rem;
-      }
-      @media (max-width: 880px) {
-        .visual {
-          position: static;
-        }
-      }
       .monogram {
         font-family: 'Space Grotesk', 'Inter', sans-serif;
         font-weight: 700;
@@ -168,6 +201,95 @@ import { ErrorState } from '../../../shared/components/error-state/error-state';
         text-transform: uppercase;
         color: var(--qc-heading);
         opacity: 0.28;
+      }
+      .product-gallery {
+        display: flex;
+        flex-direction: column;
+        gap: var(--qc-space-4);
+        width: 100%;
+      }
+      .main-image-container {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        border-radius: var(--qc-radius-xl);
+        border: 1px solid var(--qc-border);
+        overflow: hidden;
+        box-shadow: var(--qc-shadow);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--qc-surface-solid);
+      }
+      .product-image {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+      }
+      .visual-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .main-image-container.has-image {
+        padding: 0;
+      }
+      .nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(0,0,0,0.5);
+        color: #fff;
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 24px;
+        line-height: 1;
+        z-index: 2;
+      }
+      .nav.prev { left: 8px; }
+      .nav.next { right: 8px; }
+      .counter {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        background: rgba(0,0,0,0.6);
+        color: #fff;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        z-index: 2;
+      }
+      .thumbnail-strip {
+        display: flex;
+        gap: var(--qc-space-2);
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: var(--qc-space-1);
+      }
+      .thumb {
+        width: 70px;
+        height: 70px;
+        border: 2px solid var(--qc-border);
+        border-radius: var(--qc-radius-md);
+        padding: 0;
+        overflow: hidden;
+        background: var(--qc-surface-solid);
+        flex-shrink: 0;
+        cursor: pointer;
+      }
+      .thumb.active {
+        border-color: var(--qc-primary);
+      }
+      .thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
       }
       .info {
         display: flex;
@@ -275,6 +397,69 @@ export class ProductDetailPage implements OnInit {
     const p = this.product();
     return p ? toneClass(productStatusTone(p.status)) : 'badge';
   });
+
+  private readonly apiBaseUrl = inject(API_BASE_URL);
+
+  readonly images = computed<ProductImage[]>(() => {
+    const p = this.product();
+    const imgs = (p as any)?.images ?? [];
+    return [...imgs].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+  });
+
+  readonly activeImageIndex = signal(0);
+
+  readonly currentImageUrl = computed(() => {
+    const imgs = this.images();
+    if (!imgs.length) {
+      return null;
+    }
+    const idx = Math.min(Math.max(this.activeImageIndex(), 0), imgs.length - 1);
+    const url = imgs[idx]?.url;
+    if (!url) {
+      return null;
+    }
+    if (/^https?:\/\//i.test(url)) {
+      return url;
+    }
+    return `${this.apiBaseUrl}${url}`;
+  });
+
+  nextImage() {
+    const imgs = this.images();
+    if (imgs.length <= 1) return;
+    this.activeImageIndex.update((i) => (i + 1) % imgs.length);
+  }
+
+  prevImage() {
+    const imgs = this.images();
+    if (imgs.length <= 1) return;
+    this.activeImageIndex.update((i) => (i - 1 + imgs.length) % imgs.length);
+  }
+
+  goToImage(i: number) {
+    const imgs = this.images();
+    if (i < 0 || i >= imgs.length) return;
+    this.activeImageIndex.set(i);
+  }
+
+  onImageSwipeStart(event: TouchEvent) {
+    (event.currentTarget as HTMLElement).dataset['swipeX'] = String(event.touches[0].clientX);
+  }
+
+  onImageSwipeEnd(event: TouchEvent) {
+    const el = event.currentTarget as HTMLElement;
+    const startX = Number(el.dataset['swipeX'] || '0');
+    const endX = event.changedTouches[0].clientX;
+    const delta = endX - startX;
+    if (Math.abs(delta) > 50) {
+      if (delta < 0) {
+        this.nextImage();
+      } else {
+        this.prevImage();
+      }
+    }
+    delete el.dataset['swipeX'];
+  }
 
   ngOnInit() {
     this.load();

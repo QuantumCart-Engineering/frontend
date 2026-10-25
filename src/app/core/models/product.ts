@@ -17,7 +17,21 @@ export interface Product {
 
 export interface ProductWithCategories extends Product {
   categoryIds: string[];
+  images?: ProductImage[];
 }
+export interface ProductImage {
+  id: string;
+  productId: string;
+  fileName: string;
+  originalName: string | null;
+  mimeType: string;
+  fileSize: number;
+  altText: string | null;
+  position: number;
+  url: string;
+  createdAt: string;
+}
+
 
 export interface Category {
   id: string;

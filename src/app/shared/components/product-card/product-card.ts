@@ -7,6 +7,8 @@ import { NotificationService } from '../../../core/services/notification.service
 import { formatCurrency } from '../../../core/utils/money';
 import { productPlaceholder, initials } from '../../../core/utils/placeholder';
 import { productStatusLabel, productStatusTone, toneClass } from '../../../core/utils/status';
+import { API_BASE_URL } from '../../../core/config/app-config';
+import { ProductImage } from '../../../core/models/product';
 
 @Component({
   selector: 'app-product-card',
@@ -19,8 +21,19 @@ import { productStatusLabel, productStatusTone, toneClass } from '../../../core/
         [routerLink]="['/products', product.id]"
         [attr.aria-label]="'View details for ' + product.name"
       >
-        <div class="image" [style.background]="placeholder">
-          <span class="monogram" aria-hidden="true">{{ monogram }}</span>
+        <div class="image" [class.has-image]="!!primaryImageUrl">
+          @if (primaryImageUrl) {
+            <img
+              class="product-img"
+              [src]="primaryImageUrl"
+              [alt]="product.name"
+              loading="lazy"
+            />
+          } @else {
+            <div class="image-placeholder" [style.background]="placeholder">
+              <span class="monogram" aria-hidden="true">{{ monogram }}</span>
+            </div>
+          }
           <span class="status-wrap">
             <span [class]="statusClass">{{ statusLabel }}</span>
           </span>
@@ -98,6 +111,23 @@ import { productStatusLabel, productStatusTone, toneClass } from '../../../core/
         color: var(--qc-heading);
         opacity: 0.32;
         transition: transform var(--qc-duration-slow) var(--qc-ease);
+      }
+      .product-img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+        background: var(--qc-surface-solid);
+      }
+      .image-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .image.has-image {
+        padding: 0;
       }
       .product-card:hover .monogram {
         transform: scale(1.06);
@@ -193,6 +223,7 @@ export class ProductCard {
   private readonly auth = inject(AuthStore);
   private readonly cart = inject(CartStore);
   private readonly notify = inject(NotificationService);
+  private readonly apiBaseUrl = inject(API_BASE_URL);
 
   readonly adding = signal(false);
 
@@ -213,6 +244,22 @@ export class ProductCard {
   }
   get inStock() {
     return this.product.status === 'ACTIVE' && this.product.stock_quantity > 0;
+  }
+
+  get primaryImageUrl(): string | null {
+    const imgs = (this.product as any)?.images as ProductImage[] | undefined;
+    if (!imgs || !imgs.length) {
+      return null;
+    }
+    const sorted = [...imgs].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+    const url = sorted[0]?.url;
+    if (!url) {
+      return null;
+    }
+    if (/^https?:\/\//i.test(url)) {
+      return url;
+    }
+    return `${this.apiBaseUrl}${url}`;
   }
 
   async addToCart() {
