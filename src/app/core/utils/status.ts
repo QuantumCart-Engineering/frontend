@@ -1,7 +1,7 @@
 import type { ProductStatus } from '../models/product';
 import type { OrderStatus } from '../models/order';
 
-export type Tone = 'success' | 'warning' | 'error' | 'primary' | 'neutral';
+export type Tone = 'success' | 'warning' | 'error' | 'primary' | 'neutral' | 'info' | 'danger';
 
 const PRODUCT_LABELS: Record<ProductStatus, string> = {
   ACTIVE: 'Available',
@@ -37,5 +37,10 @@ export const productStatusTone = (status: ProductStatus): Tone =>
 export const orderStatusLabel = (status: OrderStatus): string => ORDER_LABELS[status] ?? status;
 export const orderStatusTone = (status: OrderStatus): Tone => ORDER_TONES[status] ?? 'neutral';
 
-export const toneClass = (tone: Tone): string =>
-  tone === 'neutral' ? 'badge' : `badge badge-${tone}`;
+export const toneClass = (tone: Tone): string => {
+  if (tone === 'neutral') return 'badge';
+  if (tone === 'info') return 'badge badge-primary';
+  if (tone === 'danger') return 'badge badge-error';
+  if (tone === 'error') return 'badge badge-error';
+  return `badge badge-${tone}`;
+};

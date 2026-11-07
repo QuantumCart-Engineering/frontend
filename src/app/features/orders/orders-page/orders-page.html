@@ -1,0 +1,240 @@
+<main class="page orders-page">
+  <div class="container orders-container">
+    <header class="page-header">
+      <span class="eyebrow">Orders</span>
+      <h1 class="page-title">Your orders</h1>
+      <p class="page-subtitle">Track and manage your purchases.</p>
+    </header>
+
+    @if (!isAuth()) {
+      <div class="gate surface">
+        <h2>Sign in to view orders</h2>
+        <p class="page-subtitle">Your order history is tied to your account.</p>
+        <a class="btn btn-inline" routerLink="/login" [queryParams]="{ returnUrl: '/orders' }">Sign in</a>
+      </div>
+    } @else if (loading() && orders().length === 0) {
+      <div class="orders-skeleton" aria-busy="true">
+        <app-skeleton height="72px"></app-skeleton>
+        <app-skeleton height="72px"></app-skeleton>
+        <app-skeleton height="72px"></app-skeleton>
+      </div>
+    } @else if (error()) {
+      <app-error-state
+        title="Couldn’t load your orders"
+        subtitle="Please try again."
+        (retry)="refresh()"
+      ></app-error-state>
+    } @else if (orders().length > 0) {
+      <div class="orders-shell">
+        <div class="orders-layout">
+          <aside class="orders-list-panel" aria-label="Order list">
+            <div class="orders-list-panel-header">
+              <h2 class="orders-list-panel-title">Orders</h2>
+            </div>
+            <div class="orders-list-panel-scroll">
+              <div class="orders-list">
+                @for (o of orders(); track o.id) {
+                  <button
+                    class="order-row surface"
+                    type="button"
+                    [class.order-row--active]="selectedId() === o.id"
+                    [attr.aria-pressed]="selectedId() === o.id"
+                    (click)="select(o.id)"
+                  >
+                    <div class="order-row-top">
+                      <div>
+                        <p class="order-row-number">{{ o.orderNumber }}</p>
+                        <p class="order-row-date">{{ o.createdAt | date: 'mediumDate' }}</p>
+                      </div>
+                      <p class="order-row-total">{{ money(o.total) }}</p>
+                    </div>
+                    <div class="order-row-bottom">
+                      <span [class]="statusClass(o.status)">{{ statusLabel(o.status) }}</span>
+                      @if (o.items?.length) {
+                        <span class="order-row-count">{{ o.items.length }} {{ o.items.length === 1 ? 'item' : 'items' }}</span>
+                      }
+                    </div>
+                  </button>
+                }
+              </div>
+            </div>
+            @if (hasMore()) {
+              <div class="orders-list-panel-footer">
+                <button class="btn ghost btn-inline" type="button" [disabled]="loadingMore()" (click)="loadMore()">
+                  {{ loadingMore() ? 'Loading…' : 'Load more' }}
+                </button>
+              </div>
+            }
+          </aside>
+
+          <section class="order-detail-panel" aria-label="Order details">
+            @if (selected(); as order) {
+              <header class="order-detail-header">
+                <div class="order-detail-header-main">
+                  <div class="order-detail-heading">
+                    <h2 class="order-detail-title">{{ order.orderNumber }}</h2>
+                    <span [class]="statusClass(order.status)">{{ statusLabel(order.status) }}</span>
+                  </div>
+                  <p class="order-detail-meta">Placed {{ order.createdAt | date: 'medium' }} · Total {{ money(order.total) }}</p>
+                </div>
+                <button
+                  class="btn ghost btn-inline order-detail-refresh"
+                  type="button"
+                  [disabled]="loadingDetails()"
+                  (click)="reloadDetails(order.id)"
+                >
+                  {{ loadingDetails() ? 'Refreshing…' : 'Refresh status' }}
+                </button>
+              </header>
+
+              <div class="order-detail-scroll">
+                @if (order.status === 'CANCELLED') {
+                  <section class="order-section">
+                    <h3 class="order-section-title">Cancellation</h3>
+                    <ol class="tracking-timeline">
+                      <li class="tracking-item tracking-item--done">
+                        <div class="tracking-marker"></div>
+                        <div class="tracking-content">
+                          <p class="tracking-title">Cancellation initiated</p>
+                          <p class="tracking-time">{{ order.updatedAt | date: 'medium' }}</p>
+                        </div>
+                      </li>
+                    </ol>
+                    <div class="refund-row">
+                      <div>
+                        <p class="refund-row-label">Refund status</p>
+                        <p class="refund-row-value">{{ refundDisplayLabel(order) }}</p>
+                      </div>
+                      <div class="refund-row-meta">
+                        @if (order.refund?.amount) {
+                          <span>{{ money(order.refund.amount) }}</span>
+                        }
+                        @if (order.refund?.updatedAt || order.refund?.createdAt) {
+                          <span>{{ (order.refund.updatedAt || order.refund.createdAt) | date: 'medium' }}</span>
+                        }
+                      </div>
+                    </div>
+                  </section>
+                } @else if (order.status === 'CONFIRMED') {
+                  <section class="order-section">
+                    <h3 class="order-section-title">Delivery &amp; fulfillment</h3>
+                    <ol class="tracking-timeline">
+                      @for (step of confirmedTimeline(order); track step.key) {
+                        <li class="tracking-item" [class.tracking-item--done]="step.done">
+                          <div class="tracking-marker"></div>
+                          <div class="tracking-content">
+                            <p class="tracking-title">{{ step.title }}</p>
+                            <p class="tracking-time">{{ step.timestamp ? (step.timestamp | date: 'medium') : '' }}</p>
+                          </div>
+                        </li>
+                      }
+                    </ol>
+                  </section>
+                } @else {
+                  <section class="order-section">
+                    <h3 class="order-section-title">Order progress</h3>
+                    <ol class="tracking-timeline">
+                      <li class="tracking-item tracking-item--done">
+                        <div class="tracking-marker"></div>
+                        <div class="tracking-content">
+                          <p class="tracking-title">Order placed</p>
+                          <p class="tracking-time">{{ order.createdAt | date: 'medium' }}</p>
+                        </div>
+                      </li>
+                      @if (order.payment?.status) {
+                        <li class="tracking-item" [class.tracking-item--done]="order.payment.status === 'SUCCESS' || order.payment.status === 'REFUNDED'">
+                          <div class="tracking-marker"></div>
+                          <div class="tracking-content">
+                            <p class="tracking-title">Payment {{ paymentTimelineTitle(order) }}</p>
+                            <p class="tracking-time">{{ order.payment.updatedAt || order.updatedAt | date: 'medium' }}</p>
+                          </div>
+                        </li>
+                      }
+                    </ol>
+                  </section>
+                }
+
+                @if (order.receiverName || order.deliveryMobile || deliveryAddressLines(order).length) {
+                  <section class="order-section">
+                    <h3 class="order-section-title">Delivery details</h3>
+                    <div class="delivery-details">
+                      @if (order.receiverName) {
+                        <div class="delivery-detail-row">
+                          <span class="delivery-detail-label">Receiver</span>
+                          <span class="delivery-detail-value">{{ order.receiverName }}</span>
+                        </div>
+                      }
+                      @if (order.deliveryMobile) {
+                        <div class="delivery-detail-row">
+                          <span class="delivery-detail-label">Mobile</span>
+                          <span class="delivery-detail-value">{{ order.deliveryMobile }}</span>
+                        </div>
+                      }
+                      @if (deliveryAddressLines(order); as addressLines) {
+                        @if (addressLines.length) {
+                          <div class="delivery-detail-row">
+                            <span class="delivery-detail-label">Address</span>
+                            <span class="delivery-detail-value">
+                              @for (line of addressLines; track $index) {
+                                {{ line }}@if (!$last) {<br />}
+                              }
+                            </span>
+                          </div>
+                        }
+                      }
+                    </div>
+                  </section>
+                }
+
+                <section class="order-section">
+                  <h3 class="order-section-title">Items</h3>
+                  <div class="items-list">
+                    @for (it of order.items; track it.id) {
+                      <div class="item-row">
+                        <div>
+                          <p class="item-row-name">{{ it.productName }}</p>
+                          <p class="item-row-meta">SKU: {{ it.sku }} · Qty {{ it.quantity }}</p>
+                        </div>
+                        <p class="item-row-total">{{ money(it.lineTotal) }}</p>
+                      </div>
+                    }
+                  </div>
+                  <div class="order-totals">
+                    <div class="order-total-row">
+                      <span>Subtotal</span><span>{{ money(order.subtotal) }}</span>
+                    </div>
+                    <div class="order-total-row order-total-row--final">
+                      <span>Total</span><span>{{ money(order.total) }}</span>
+                    </div>
+                  </div>
+                </section>
+
+                @if (canCancel(order)) {
+                  <div class="order-actions">
+                    <button class="btn" type="button" [disabled]="canceling()" (click)="cancel(order)">
+                      {{ canceling() ? 'Cancelling…' : 'Cancel order' }}
+                    </button>
+                  </div>
+                }
+                @if (cancelError()) {
+                  <p class="error-text">{{ cancelError() }}</p>
+                }
+              </div>
+            } @else {
+              <div class="order-detail-empty">
+                <p class="muted">Select an order to view details.</p>
+              </div>
+            }
+          </section>
+        </div>
+      </div>
+    } @else {
+      <app-empty-state
+        title="No orders yet"
+        subtitle="When you place an order it will appear here."
+        cta="Start shopping"
+        ctaLink="/products"
+      ></app-empty-state>
+    }
+  </div>
+</main>

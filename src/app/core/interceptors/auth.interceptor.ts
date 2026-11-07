@@ -25,6 +25,13 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         !!store.refreshToken();
 
       if (!canRefresh) {
+        if (err instanceof HttpErrorResponse && err.status === 401 && !isAuthEndpoint) {
+          store.logout();
+          notify.showError('Your session expired. Please sign in again.');
+          if (!router.url.startsWith('/login')) {
+            router.navigate(['/login'], { queryParams: { returnUrl: router.url } });
+          }
+        }
         return throwError(() => err);
       }
 

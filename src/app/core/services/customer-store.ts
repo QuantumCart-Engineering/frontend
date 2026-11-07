@@ -36,6 +36,20 @@ export class CustomerStore {
     }
   }
 
+  async loadProfile(identityUserId: string): Promise<Customer | null> {
+    try {
+      const customer = await firstValueFrom(this.api.getByIdentity(identityUserId));
+      this._customer.set(customer);
+      return customer;
+    } catch (e: unknown) {
+      if ((e as { status?: number })?.status === 404) {
+        this._customer.set(null);
+        return null;
+      }
+      throw e;
+    }
+  }
+
   private async ensureCustomer(identityUserId: string): Promise<Customer> {
     try {
       return await firstValueFrom(this.api.getByIdentity(identityUserId));

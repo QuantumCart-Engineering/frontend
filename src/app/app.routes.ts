@@ -1,4 +1,6 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './core/guards/auth.guard';
+import { guestGuard } from './core/guards/guest.guard';
 import { HomePage } from './features/home/home-page/home-page';
 
 export const routes: Routes = [
@@ -24,29 +26,34 @@ export const routes: Routes = [
   },
   {
     path: 'checkout',
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/checkout/checkout-page/checkout-page').then((m) => m.CheckoutPage),
     title: 'Checkout — QuantumCart',
   },
   {
     path: 'login',
+    canActivate: [guestGuard],
     loadComponent: () => import('./features/auth/login-page/login-page').then((m) => m.LoginPage),
     title: 'Sign in — QuantumCart',
   },
   {
     path: 'register',
+    canActivate: [guestGuard],
     loadComponent: () =>
       import('./features/auth/register-page/register-page').then((m) => m.RegisterPage),
     title: 'Create account — QuantumCart',
   },
   {
     path: 'account',
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/profile/profile-page/profile-page').then((m) => m.ProfilePage),
     title: 'Account — QuantumCart',
   },
   {
     path: 'orders',
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/orders/orders-page/orders-page').then((m) => m.OrdersPage),
     title: 'Orders — QuantumCart',

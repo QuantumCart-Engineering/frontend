@@ -1,0 +1,295 @@
+<main class="page">
+  <div class="container">
+    <header class="page-header">
+      <span class="eyebrow">Checkout</span>
+      <h1 class="page-title">Complete your order</h1>
+    </header>
+
+    @if (!isAuth()) {
+      <div class="signin-gate surface">
+        <h2>Please sign in</h2>
+        <p class="page-subtitle">You need an account to place an order and access it later.</p>
+        <div class="gate-actions">
+          <a class="btn btn-inline" routerLink="/login" [queryParams]="{ returnUrl: safeReturnUrl }"
+            >Sign in</a
+          >
+          <a class="btn ghost btn-inline" routerLink="/register">Create account</a>
+        </div>
+      </div>
+    } @else if (placed(); as order) {
+      <div class="confirmation surface-strong fade-in" role="status">
+        <span class="badge badge-success">Order placed</span>
+        <h2>Thank you for your order</h2>
+        <p class="page-subtitle">Your order number is</p>
+        <p class="order-number">{{ order.orderNumber }}</p>
+        <p class="page-subtitle">
+          Status: {{ orderLabel(order.status) }} · Total: {{ money(order.total) }}
+        </p>
+        <div class="gate-actions">
+          <a class="btn btn-inline" routerLink="/orders">View orders</a>
+          <a class="btn ghost btn-inline" routerLink="/products">Continue shopping</a>
+        </div>
+      </div>
+    } @else if (loading()) {
+      <div class="summary" aria-busy="true">
+        <app-skeleton height="96px"></app-skeleton>
+        <app-skeleton height="96px"></app-skeleton>
+      </div>
+    } @else if (loadError()) {
+      <app-error-state
+        title="Couldn’t prepare checkout"
+        subtitle="Please try again."
+        (retry)="reload()"
+      ></app-error-state>
+    } @else if (hasItems()) {
+      <div class="layout">
+        <form class="form surface" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <fieldset class="fieldset">
+            <legend class="section-title">Delivery details</legend>
+            <p class="page-subtitle delivery-note">
+              We’ll use these details to deliver your order.
+            </p>
+
+            <label class="field" for="receiverName">
+              <span class="field-label">
+                Receiver name <span class="required" aria-hidden="true">*</span>
+              </span>
+              <input
+                id="receiverName"
+                type="text"
+                class="field-input"
+                formControlName="receiverName"
+                autocomplete="name"
+                maxlength="150"
+                placeholder="Full name of the person receiving the order"
+                [attr.aria-invalid]="showError('receiverName')"
+                [attr.aria-describedby]="showError('receiverName') ? 'receiverName-error' : null"
+              />
+              @if (showError('receiverName')) {
+                <span class="field-error" id="receiverName-error">
+                  @if (form.controls.receiverName.errors?.['required']) {
+                    Receiver name is required.
+                  } @else if (form.controls.receiverName.errors?.['maxlength']) {
+                    Receiver name must be 150 characters or fewer.
+                  }
+                </span>
+              }
+            </label>
+
+            <label class="field" for="deliveryMobile">
+              <span class="field-label">
+                Delivery mobile number <span class="required" aria-hidden="true">*</span>
+              </span>
+              <input
+                id="deliveryMobile"
+                type="tel"
+                inputmode="numeric"
+                class="field-input"
+                formControlName="deliveryMobile"
+                autocomplete="tel-national"
+                placeholder="10-digit Indian mobile number"
+                [attr.aria-invalid]="showError('deliveryMobile')"
+                [attr.aria-describedby]="showError('deliveryMobile') ? 'deliveryMobile-error' : null"
+              />
+              @if (showError('deliveryMobile')) {
+                <span class="field-error" id="deliveryMobile-error">
+                  @if (form.controls.deliveryMobile.errors?.['required']) {
+                    Mobile number is required.
+                  } @else if (form.controls.deliveryMobile.errors?.['indianMobile']) {
+                    Enter a valid 10-digit Indian mobile number.
+                  }
+                </span>
+              }
+            </label>
+
+            <label class="field" for="addressLine1">
+              <span class="field-label">
+                Address Line 1 <span class="required" aria-hidden="true">*</span>
+              </span>
+              <input
+                id="addressLine1"
+                type="text"
+                class="field-input"
+                formControlName="addressLine1"
+                autocomplete="address-line1"
+                maxlength="255"
+                placeholder="House/Flat no., building name"
+                [attr.aria-invalid]="showError('addressLine1')"
+                [attr.aria-describedby]="showError('addressLine1') ? 'addressLine1-error' : null"
+              />
+              @if (showError('addressLine1')) {
+                <span class="field-error" id="addressLine1-error">
+                  @if (form.controls.addressLine1.errors?.['required']) {
+                    Address Line 1 is required.
+                  }
+                </span>
+              }
+            </label>
+
+            <label class="field" for="addressLine2">
+              <span class="field-label">Address Line 2</span>
+              <input
+                id="addressLine2"
+                type="text"
+                class="field-input"
+                formControlName="addressLine2"
+                autocomplete="address-line2"
+                maxlength="255"
+                placeholder="Area, street, landmark (optional)"
+                [attr.aria-invalid]="showError('addressLine2')"
+              />
+            </label>
+
+            <div class="form-row">
+              <label class="field" for="city">
+                <span class="field-label">
+                  City <span class="required" aria-hidden="true">*</span>
+                </span>
+                <input
+                  id="city"
+                  type="text"
+                  class="field-input"
+                  formControlName="city"
+                  autocomplete="address-level2"
+                  maxlength="100"
+                  placeholder="City"
+                  [attr.aria-invalid]="showError('city')"
+                  [attr.aria-describedby]="showError('city') ? 'city-error' : null"
+                />
+                @if (showError('city')) {
+                  <span class="field-error" id="city-error">City is required.</span>
+                }
+              </label>
+
+              <label class="field" for="state">
+                <span class="field-label">
+                  State <span class="required" aria-hidden="true">*</span>
+                </span>
+                <input
+                  id="state"
+                  type="text"
+                  class="field-input"
+                  formControlName="state"
+                  autocomplete="address-level1"
+                  maxlength="100"
+                  placeholder="State"
+                  [attr.aria-invalid]="showError('state')"
+                  [attr.aria-describedby]="showError('state') ? 'state-error' : null"
+                />
+                @if (showError('state')) {
+                  <span class="field-error" id="state-error">State is required.</span>
+                }
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label class="field" for="postalCode">
+                <span class="field-label">
+                  PIN Code <span class="required" aria-hidden="true">*</span>
+                </span>
+                <input
+                  id="postalCode"
+                  type="text"
+                  inputmode="numeric"
+                  class="field-input"
+                  formControlName="postalCode"
+                  autocomplete="postal-code"
+                  maxlength="6"
+                  placeholder="6-digit PIN code"
+                  [attr.aria-invalid]="showError('postalCode')"
+                  [attr.aria-describedby]="showError('postalCode') ? 'postalCode-error' : null"
+                />
+                @if (showError('postalCode')) {
+                  <span class="field-error" id="postalCode-error">
+                    @if (form.controls.postalCode.errors?.['required']) {
+                      PIN code is required.
+                    } @else if (form.controls.postalCode.errors?.['indianPincode']) {
+                      Enter a valid 6-digit Indian PIN code.
+                    }
+                  </span>
+                }
+              </label>
+
+              <label class="field" for="country">
+                <span class="field-label">
+                  Country <span class="required" aria-hidden="true">*</span>
+                </span>
+                <input
+                  id="country"
+                  type="text"
+                  class="field-input"
+                  formControlName="country"
+                  autocomplete="country-name"
+                  maxlength="100"
+                  placeholder="Country"
+                  [attr.aria-invalid]="showError('country')"
+                  [attr.aria-describedby]="showError('country') ? 'country-error' : null"
+                />
+                @if (showError('country')) {
+                  <span class="field-error" id="country-error">Country is required.</span>
+                }
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="fieldset">
+            <legend class="section-title">Payment method</legend>
+            <p class="page-subtitle payment-note">
+              This is a demo environment — no real payment will be processed.
+            </p>
+            <div class="payment-options">
+              @for (m of methods; track m.value) {
+                <label class="payment-option">
+                  <input type="radio" formControlName="paymentMethod" [value]="m.value" />
+                  <span>{{ m.label }}</span>
+                </label>
+              }
+            </div>
+          </fieldset>
+
+          @if (isBuyNow()) {
+            <p class="buy-now-note">
+              Buy now: <strong>{{ lineLabel() }}</strong>
+            </p>
+          }
+
+          @if (submitError()) {
+            <p class="field-error" role="alert">{{ submitError() }}</p>
+          }
+
+          <button class="btn" type="submit" [disabled]="form.invalid || submitting()">
+            {{ submitting() ? 'Placing order…' : 'Place order' }}
+          </button>
+        </form>
+
+        <aside class="summary surface-strong">
+          <h2 class="summary-title">Order summary</h2>
+          @if (isBuyNow()) {
+            <div class="summary-row">
+              <span>{{ buyNowProduct()?.name }} × {{ buyNowQty() }}</span>
+              <span>{{ buyNowLineTotal() }}</span>
+            </div>
+          } @else {
+            @for (l of cartLines(); track l.productId) {
+              <div class="summary-row">
+                <span>{{ l.name }} × {{ l.quantity }}</span>
+                <span>{{ money(l.lineTotal) }}</span>
+              </div>
+            }
+          }
+          <div class="summary-row total">
+            <span>Total</span>
+            <span>{{ totalText() }}</span>
+          </div>
+        </aside>
+      </div>
+    } @else {
+      <app-empty-state
+        title="Nothing to check out"
+        subtitle="Add items to your cart first."
+        cta="Shop products"
+        ctaLink="/products"
+      ></app-empty-state>
+    }
+  </div>
+</main>

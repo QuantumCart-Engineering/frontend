@@ -39,4 +39,10 @@ export class OrderApi {
       .get<OrderResponse>(`${this.baseUrl}/api/v1/orders/${orderId}`)
       .pipe(map((res) => res.data));
   }
+
+  cancel(orderId: string): Observable<Order> {
+    return this.http
+      .post<OrderResponse>(`${this.baseUrl}/api/v1/orders/${orderId}/cancel`, {})
+      .pipe(map((res) => res.data));
+  }
 }

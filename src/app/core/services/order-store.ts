@@ -38,6 +38,17 @@ export class OrderStore {
     return o;
   }
 
+  async cancelOrder(orderId: string) {
+    const updated = await firstValueFrom(this.api.cancel(orderId));
+    this._orders.update((xs) =>
+      xs.map((o) => (o.id === updated.id ? { ...o, ...updated } : o)),
+    );
+    this._selected.update((o) =>
+      o && o.id === updated.id ? { ...o, ...updated } : o,
+    );
+    return updated;
+  }
+
   reset() {
     this._orders.set([]);
     this._selected.set(null);

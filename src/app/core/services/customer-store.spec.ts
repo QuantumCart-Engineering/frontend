@@ -97,6 +97,40 @@ describe('CustomerStore', () => {
     expect(store.loading()).toBe(false);
   });
 
+  it('loads a customer profile without creating one', async () => {
+    const promise = store.loadProfile('u1');
+
+    http
+      .expectOne('http://test/api/v1/customers/by-identity/u1')
+      .flush({ success: true, data: customer });
+
+    await expect(promise).resolves.toEqual(customer);
+    expect(store.customer()?.id).toBe('c1');
+    http.expectNone('http://test/api/v1/customers');
+  });
+
+  it('returns no profile and does not create one when none exists', async () => {
+    const promise = store.loadProfile('u1');
+
+    http
+      .expectOne('http://test/api/v1/customers/by-identity/u1')
+      .flush({ success: false, message: 'not found' }, { status: 404, statusText: 'Not Found' });
+
+    await expect(promise).resolves.toBeNull();
+    expect(store.customer()).toBeNull();
+    http.expectNone('http://test/api/v1/customers');
+  });
+
+  it('propagates unexpected profile loading failures', async () => {
+    const promise = store.loadProfile('u1');
+
+    http
+      .expectOne('http://test/api/v1/customers/by-identity/u1')
+      .flush({ success: false, message: 'boom' }, { status: 500, statusText: 'Server Error' });
+
+    await expect(promise).rejects.toBeTruthy();
+  });
+
   it('tracks the default address after adding one', async () => {
     await loadExisting();
     const addPromise = store.addAddress({

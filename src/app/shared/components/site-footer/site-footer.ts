@@ -1,5 +1,7 @@
-import { Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, inject } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
+import { AuthStore } from '../../../core/services/auth-store';
+import { CartStore } from '../../../core/services/cart-store';
 
 @Component({
   selector: 'app-site-footer',
@@ -28,17 +30,25 @@ import { RouterLink } from '@angular/router';
 
         <nav class="footer-col" aria-label="Your account">
           <h3 class="footer-heading">Account</h3>
-          <a routerLink="/account">Your profile</a>
-          <a routerLink="/orders">Orders</a>
-          <a routerLink="/cart">Cart</a>
-          <a routerLink="/login">Sign in</a>
+          @if (isAuth()) {
+            <a routerLink="/account">Your profile</a>
+            <a routerLink="/orders">Orders</a>
+            <a routerLink="/cart">Cart</a>
+            <button class="footer-link" type="button" (click)="logout()">Logout</button>
+          } @else {
+            <a routerLink="/cart">Cart</a>
+            <a routerLink="/login">Sign in</a>
+            <a routerLink="/register">Create account</a>
+          }
         </nav>
 
         <nav class="footer-col" aria-label="Support">
           <h3 class="footer-heading">Help</h3>
           <a routerLink="/products">Browse catalogue</a>
-          <a routerLink="/orders">Track an order</a>
-          <a routerLink="/account">Manage addresses</a>
+          @if (isAuth()) {
+            <a routerLink="/orders">Track an order</a>
+            <a routerLink="/account">Manage addresses</a>
+          }
         </nav>
       </div>
 
@@ -107,12 +117,22 @@ import { RouterLink } from '@angular/router';
         text-transform: uppercase;
         margin-bottom: var(--qc-space-1, 0.25rem);
       }
-      .footer-col a {
+      .footer-col a,
+      .footer-link {
         color: #94a3b8;
         transition: color var(--qc-duration) var(--qc-ease);
       }
-      .footer-col a:hover {
+      .footer-col a:hover,
+      .footer-link:hover {
         color: #ffffff;
+      }
+      .footer-link {
+        padding: 0;
+        border: 0;
+        background: transparent;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
       }
       .footer-meta {
         display: flex;
@@ -131,5 +151,16 @@ import { RouterLink } from '@angular/router';
   ],
 })
 export class SiteFooter {
+  private readonly auth = inject(AuthStore);
+  private readonly cart = inject(CartStore);
+  private readonly router = inject(Router);
+
   readonly year = new Date().getFullYear();
+  readonly isAuth = this.auth.isAuthenticated;
+
+  async logout() {
+    this.auth.logout();
+    this.cart.reset();
+    await this.router.navigate(['/']);
+  }
 }
